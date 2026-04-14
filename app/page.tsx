@@ -332,18 +332,18 @@ export default function HomePage() {
             >
               현재 페이스
             </p>
-            <p
-              className={`mt-1.5 inline-flex flex-nowrap items-baseline gap-[0.24em] whitespace-nowrap tracking-tight ${
-                activeMode === "pace"
-                  ? "text-5xl font-black theme-accent-blue"
-                  : "text-[2rem] font-semibold text-[var(--text)]"
-              }`}
-            >
-              <span>{currentPaceValue}</span>
-              <span className="shrink-0 text-[0.46em] font-semibold leading-none theme-muted">
-                /km
-              </span>
-            </p>
+            <div className="mt-1.5">
+              <p
+                className={`tracking-tight ${
+                  activeMode === "pace"
+                    ? "text-5xl font-black theme-accent-blue"
+                    : "text-[2rem] font-semibold text-[var(--text)]"
+                }`}
+              >
+                {currentPaceValue}
+              </p>
+              <p className="mt-1 text-[0.95rem] font-semibold leading-none theme-muted">/km</p>
+            </div>
           </button>
 
           <button
@@ -367,18 +367,18 @@ export default function HomePage() {
             >
               현재 속도
             </p>
-            <p
-              className={`mt-1.5 inline-flex flex-nowrap items-baseline gap-[0.24em] whitespace-nowrap tracking-tight ${
-                activeMode === "speed"
-                  ? "text-5xl font-black theme-accent-green"
-                  : "text-[2rem] font-semibold text-[var(--text)]"
-              }`}
-            >
-              <span>{formatSpeed(currentSpeed)}</span>
-              <span className="shrink-0 whitespace-nowrap text-[0.42em] font-semibold leading-none theme-muted">
-                km/h
-              </span>
-            </p>
+            <div className="mt-1.5">
+              <p
+                className={`tracking-tight ${
+                  activeMode === "speed"
+                    ? "text-5xl font-black theme-accent-green"
+                    : "text-[2rem] font-semibold text-[var(--text)]"
+                }`}
+              >
+                {formatSpeed(currentSpeed)}
+              </p>
+              <p className="mt-1 text-[0.95rem] font-semibold leading-none theme-muted">km/h</p>
+            </div>
           </button>
         </div>
         <p className="theme-muted relative mt-2 px-1 text-center text-[11px]">
