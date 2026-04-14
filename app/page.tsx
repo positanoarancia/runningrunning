@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   MAX_SPEED,
@@ -25,6 +26,7 @@ const SPEED_HAPTIC_STEP = 0.5;
 const PACE_HAPTIC_STEP = 15;
 
 type ActiveMode = "speed" | "pace";
+type ThemeMode = "light" | "dark";
 
 function triggerHaptic() {
   if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") {
@@ -34,8 +36,51 @@ function triggerHaptic() {
   navigator.vibrate(10);
 }
 
+function SunIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+    >
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2.2" />
+      <path d="M12 19.8V22" />
+      <path d="m4.93 4.93 1.56 1.56" />
+      <path d="m17.51 17.51 1.56 1.56" />
+      <path d="M2 12h2.2" />
+      <path d="M19.8 12H22" />
+      <path d="m4.93 19.07 1.56-1.56" />
+      <path d="m17.51 6.49 1.56-1.56" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+    >
+      <path d="M20.9 14.1A8.6 8.6 0 1 1 9.9 3.1 6.7 6.7 0 0 0 20.9 14.1Z" />
+    </svg>
+  );
+}
+
 export default function HomePage() {
   const [activeMode, setActiveMode] = useState<ActiveMode>("speed");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [sliderPosition, setSliderPosition] = useState<number>(DEFAULT_POSITION);
   const [showPrecisionInput, setShowPrecisionInput] = useState<boolean>(false);
   const [introHighlight, setIntroHighlight] = useState<ActiveMode | null>(null);
@@ -50,6 +95,19 @@ export default function HomePage() {
   const [error, setError] = useState<string>("");
   const lastSpeedHapticMark = useRef<number | null>(null);
   const lastPaceHapticMark = useRef<number | null>(null);
+
+  const applyTheme = (nextTheme: ThemeMode) => {
+    setThemeMode(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+    document.documentElement.style.colorScheme = nextTheme;
+    window.localStorage.setItem("theme-mode", nextTheme);
+  };
+
+  const toggleTheme = () => {
+    const currentTheme =
+      document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    applyTheme(currentTheme === "dark" ? "light" : "dark");
+  };
 
   const speedFromPosition = (position: number) =>
     MIN_SPEED + ((MAX_SPEED - MIN_SPEED) * position) / SLIDER_MAX;
@@ -70,6 +128,18 @@ export default function HomePage() {
     setPaceMinutesInput(String(currentPace.minutes));
     setPaceSecondsInput(String(currentPace.seconds).padStart(2, "0"));
   }, [currentPace.minutes, currentPace.seconds, currentSpeed]);
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("theme-mode");
+    const initialTheme =
+      savedTheme === "light" || savedTheme === "dark"
+        ? savedTheme
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+
+    applyTheme(initialTheme);
+  }, []);
 
   useEffect(() => {
     const toPace = window.setTimeout(() => setIntroHighlight("pace"), 450);
@@ -197,23 +267,49 @@ export default function HomePage() {
   const nearestMark = activeMarks.reduce((closest, mark) =>
     Math.abs(mark - currentMarkValue) < Math.abs(closest - currentMarkValue) ? mark : closest,
   );
+  const sliderProgress = `${(sliderPosition / SLIDER_MAX) * 100}%`;
+  const sliderAccent = activeMode === "speed" ? "var(--accent)" : "var(--primary)";
+  const sliderStyle = {
+    background: `linear-gradient(90deg, ${sliderAccent} 0%, ${sliderAccent} ${sliderProgress}, var(--slider-track) ${sliderProgress}, var(--slider-track) 100%)`,
+    "--thumb-border":
+      activeMode === "speed"
+        ? "color-mix(in srgb, var(--accent) 28%, white)"
+        : "color-mix(in srgb, var(--primary) 28%, white)",
+    "--thumb-fill-start": activeMode === "speed" ? "var(--accent)" : "var(--primary)",
+    "--thumb-fill-end":
+      activeMode === "speed"
+        ? "color-mix(in srgb, var(--accent) 84%, black)"
+        : "var(--primary-strong)",
+  } as CSSProperties;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-10 pt-6 theme-text">
       <header className="mb-5 px-1">
-        <p className="text-xs font-medium uppercase tracking-[0.24em] text-sky-300/80">
-          by 러닝러닝
-        </p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight theme-text">
-          러닝 페이스 계산기
-        </h1>
-        <p className="theme-muted mt-2 text-sm leading-6">
-          러닝머신 속도 ↔ 페이스 변환
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="theme-accent-blue text-xs font-medium uppercase tracking-[0.24em]">
+              by 러닝러닝
+            </p>
+            <h1 className="mt-3 text-3xl font-black tracking-tight theme-text">
+              러닝 페이스 계산기
+            </h1>
+            <p className="theme-muted mt-2 text-sm leading-6">
+              러닝머신 속도 ↔ 페이스 변환
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label={themeMode === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+            onClick={toggleTheme}
+            className="theme-muted mt-1 px-1 py-1 opacity-60 hover:opacity-85 hover:text-[var(--text)] active:scale-95"
+          >
+            {themeMode === "dark" ? <SunIcon /> : <MoonIcon />}
+          </button>
+        </div>
       </header>
 
-      <section className="glass relative overflow-hidden rounded-[26px] px-3 py-3">
-        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-sky-400/15 to-transparent" />
+      <section className="glass relative overflow-hidden rounded-[26px] p-5">
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[color:color-mix(in_srgb,var(--primary)_10%,transparent)] to-transparent" />
         <div className="relative grid grid-cols-2 gap-3">
           <button
             type="button"
@@ -221,30 +317,30 @@ export default function HomePage() {
               setActiveMode("pace");
               triggerHaptic();
             }}
-            className={`flex min-h-[132px] flex-col justify-center rounded-[22px] border px-3 py-3 text-left transition duration-200 hover:shadow-[0_18px_36px_rgba(56,189,248,0.12)] active:scale-[0.98] ${
+            className={`flex min-h-[124px] flex-col justify-center rounded-[22px] border px-4 pr-5 py-4 text-left transition duration-200 hover:shadow-[0_18px_36px_rgba(56,189,248,0.12)] active:scale-[0.98] ${
               activeMode === "pace"
-                ? "border-sky-300/60 bg-sky-400/12 shadow-[0_18px_36px_rgba(56,189,248,0.14)]"
+                ? "theme-accent-blue-soft shadow-[0_18px_36px_rgba(37,99,235,0.10)]"
                 : introHighlight === "pace"
-                  ? "border-sky-300/45 bg-sky-400/10 shadow-[0_14px_30px_rgba(56,189,248,0.10)]"
-                  : "theme-soft hover:bg-sky-400/8"
+                  ? "theme-accent-blue-soft shadow-[0_14px_30px_rgba(37,99,235,0.08)]"
+                  : "theme-soft hover:bg-[color:color-mix(in_srgb,var(--primary)_6%,transparent)]"
             }`}
           >
             <p
               className={`text-xs uppercase tracking-[0.18em] ${
-                activeMode === "pace" ? "text-sky-300" : "theme-muted"
+                activeMode === "pace" ? "theme-accent-blue" : "theme-muted"
               }`}
             >
               현재 페이스
             </p>
             <p
-              className={`mt-1.5 flex flex-wrap items-baseline gap-x-1 tracking-tight ${
+              className={`mt-1.5 inline-flex flex-nowrap items-baseline gap-[0.24em] whitespace-nowrap tracking-tight ${
                 activeMode === "pace"
-                  ? "text-5xl font-black text-sky-200"
+                  ? "text-5xl font-black theme-accent-blue"
                   : "text-[2rem] font-semibold text-[var(--text)]"
               }`}
             >
               <span>{currentPaceValue}</span>
-              <span className="shrink-0 text-[0.45em] font-semibold leading-[1.05] theme-muted">
+              <span className="shrink-0 text-[0.46em] font-semibold leading-none theme-muted">
                 /km
               </span>
             </p>
@@ -256,30 +352,30 @@ export default function HomePage() {
               setActiveMode("speed");
               triggerHaptic();
             }}
-            className={`flex min-h-[132px] flex-col justify-center rounded-[22px] border px-3 py-3 text-left transition duration-200 hover:shadow-[0_18px_36px_rgba(34,197,94,0.10)] active:scale-[0.98] ${
+            className={`flex min-h-[124px] flex-col justify-center rounded-[22px] border px-4 pr-5 py-4 text-left transition duration-200 hover:shadow-[0_18px_36px_rgba(34,197,94,0.10)] active:scale-[0.98] ${
               activeMode === "speed"
-                ? "border-emerald-300/60 bg-emerald-400/10 shadow-[0_18px_36px_rgba(34,197,94,0.12)]"
+                ? "theme-accent-green-soft shadow-[0_18px_36px_rgba(16,185,129,0.10)]"
                 : introHighlight === "speed"
-                  ? "border-emerald-300/45 bg-emerald-400/8 shadow-[0_14px_30px_rgba(34,197,94,0.09)]"
-                  : "theme-soft hover:bg-emerald-400/8"
+                  ? "theme-accent-green-soft shadow-[0_14px_30px_rgba(16,185,129,0.08)]"
+                  : "theme-soft hover:bg-[color:color-mix(in_srgb,var(--accent)_6%,transparent)]"
             }`}
           >
             <p
               className={`text-xs uppercase tracking-[0.18em] ${
-                activeMode === "speed" ? "text-emerald-300" : "theme-muted"
+                activeMode === "speed" ? "theme-accent-green" : "theme-muted"
               }`}
             >
               현재 속도
             </p>
             <p
-              className={`mt-1.5 flex flex-wrap items-baseline gap-x-1 tracking-tight ${
+              className={`mt-1.5 inline-flex flex-nowrap items-baseline gap-[0.24em] whitespace-nowrap tracking-tight ${
                 activeMode === "speed"
-                  ? "text-5xl font-black text-emerald-300"
+                  ? "text-5xl font-black theme-accent-green"
                   : "text-[2rem] font-semibold text-[var(--text)]"
               }`}
             >
               <span>{formatSpeed(currentSpeed)}</span>
-              <span className="shrink-0 text-[0.42em] font-semibold leading-[1.05] theme-muted">
+              <span className="shrink-0 whitespace-nowrap text-[0.42em] font-semibold leading-none theme-muted">
                 km/h
               </span>
             </p>
@@ -290,19 +386,19 @@ export default function HomePage() {
         </p>
       </section>
 
-      <section className="glass mt-3 rounded-[24px] px-4 py-3">
+      <section className="glass mt-3 rounded-[24px] p-5">
         <p className="theme-muted text-[11px]">예상 완주 시간</p>
         <p className="mt-1 text-sm font-medium theme-text">
-          10km 약 <span className="font-bold text-sky-300">{estimated10k}</span>
+          10km 약 <span className="theme-accent-blue font-bold">{estimated10k}</span>
           <span className="mx-2 theme-muted">/</span>
-          하프 약 <span className="font-bold text-emerald-300">{estimatedHalf}</span>
+          하프 약 <span className="theme-accent-green font-bold">{estimatedHalf}</span>
         </p>
       </section>
 
-      <section className="glass mt-4 rounded-[24px] px-4 py-3">
+      <section className="glass mt-4 rounded-[24px] p-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold theme-text">{sliderLabel}</p>
-          <span className="theme-soft rounded-full border px-3 py-1 text-sm font-semibold text-sky-300">
+          <span className="theme-soft theme-accent-blue rounded-full border px-3 py-1 text-sm font-semibold">
             {sliderValueLabel}
           </span>
         </div>
@@ -316,10 +412,11 @@ export default function HomePage() {
             step="1"
             value={sliderPosition}
             onChange={(event) => handleSliderChange(event.target.value)}
+            style={sliderStyle}
           />
         </div>
 
-        <div className="mt-1.5 grid grid-cols-7 gap-1 text-center">
+        <div className="mt-1 grid grid-cols-7 gap-1 text-center">
           {activeMarks.map((mark, index) => {
             const active = mark === nearestMark;
             const sizeClass =
@@ -341,14 +438,14 @@ export default function HomePage() {
                   }
                   triggerHaptic();
                 }}
-                className={`min-h-12 rounded-2xl px-1 py-2 font-semibold transition ${sizeClass} ${
+                className={`min-h-11 rounded-2xl px-1 py-2 font-semibold transition ${sizeClass} ${
                   active
                     ? activeMode === "speed"
-                      ? "bg-emerald-400/18 text-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.18)] ring-1 ring-emerald-300/30"
-                      : "bg-sky-400/18 text-sky-300 shadow-[0_0_18px_rgba(56,189,248,0.18)] ring-1 ring-sky-300/30"
+                      ? "theme-accent-green-soft theme-accent-green shadow-[0_0_18px_rgba(16,185,129,0.12)]"
+                      : "theme-accent-blue-soft theme-accent-blue shadow-[0_0_18px_rgba(37,99,235,0.12)]"
                     : index === 0 || index === activeMarks.length - 1
-                      ? "theme-muted-soft hover:bg-sky-100/60"
-                      : "theme-muted hover:bg-sky-100/60"
+                      ? "theme-muted-soft hover:bg-[color:color-mix(in_srgb,var(--primary)_8%,transparent)]"
+                      : "theme-muted hover:bg-[color:color-mix(in_srgb,var(--primary)_8%,transparent)]"
                 }`}
               >
                 {activeMode === "speed" ? mark : formatPaceSeconds(mark).replace(" /km", "")}
@@ -358,7 +455,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="glass mt-4 rounded-[22px] px-3 py-1.5">
+      <section className="glass mt-4 rounded-[22px] px-5 pb-[18px] pt-5">
         <button
           type="button"
           onClick={() => setShowPrecisionInput((current) => !current)}
@@ -379,10 +476,11 @@ export default function HomePage() {
         </button>
 
         {showPrecisionInput ? (
-          <div className="mt-2.5">
+          <div className="mt-4">
             {activeMode === "speed" ? (
               <div>
-                <div className="mt-1.5 flex items-center rounded-lg border border-white/8 bg-black/5 px-3 py-1.5 shadow-none">
+                <p className="mb-3 px-1 text-sm font-medium theme-muted">속도</p>
+                <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--field)] px-3 py-1.5 shadow-none">
                   <input
                     id="speed-input"
                     inputMode="decimal"
@@ -397,10 +495,12 @@ export default function HomePage() {
                   />
                   <span className="theme-muted ml-2 text-sm font-medium">km/h</span>
                 </div>
+                <div className="mb-4" />
               </div>
             ) : (
               <div>
-                <div className="mt-1.5 grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2.5">
+                <p className="mb-3 px-1 text-sm font-medium theme-muted">페이스</p>
+                <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2.5">
                   <input
                     inputMode="numeric"
                     type="number"
@@ -409,7 +509,7 @@ export default function HomePage() {
                     onChange={(event) =>
                       handlePaceInputChange(event.target.value, paceSecondsInput)
                     }
-                    className="min-w-0 rounded-lg border border-white/8 bg-black/5 px-3 py-1.5 text-center text-lg font-semibold theme-text outline-none shadow-none placeholder:text-[var(--muted-soft)]"
+                    className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--field)] px-3 py-1.5 text-center text-lg font-semibold theme-text outline-none shadow-none placeholder:text-[var(--muted-soft)]"
                     placeholder="6"
                     aria-label="페이스 분"
                   />
@@ -423,12 +523,13 @@ export default function HomePage() {
                     onChange={(event) =>
                       handlePaceInputChange(paceMinutesInput, event.target.value)
                     }
-                    className="min-w-0 rounded-lg border border-white/8 bg-black/5 px-3 py-1.5 text-center text-lg font-semibold theme-text outline-none shadow-none placeholder:text-[var(--muted-soft)]"
+                    className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--field)] px-3 py-1.5 text-center text-lg font-semibold theme-text outline-none shadow-none placeholder:text-[var(--muted-soft)]"
                     placeholder="40"
                     aria-label="페이스 초"
                   />
                   <span className="theme-muted text-sm font-medium">/km</span>
                 </div>
+                <div className="mb-4" />
               </div>
             )}
           </div>
@@ -439,9 +540,6 @@ export default function HomePage() {
         {error}
       </div>
 
-      <footer className="theme-muted mt-auto px-1 pt-4 text-sm leading-6">
-        같은 슬라이더 위치를 유지한 채 speed와 pace 기준을 전환할 수 있습니다.
-      </footer>
     </main>
   );
 }
