@@ -1,5 +1,7 @@
 const MIN_SPEED = 6;
 const MAX_SPEED = 18;
+const MIN_PACE_SLIDER_SECONDS = 200;
+const MAX_PACE_SLIDER_SECONDS = 600;
 
 export type PaceParts = {
   minutes: number;
@@ -22,6 +24,17 @@ export function sanitizeSeconds(seconds: number): number {
   return Math.min(59, Math.max(0, Math.floor(seconds)));
 }
 
+export function clampPaceSliderSeconds(totalSeconds: number): number {
+  if (!Number.isFinite(totalSeconds)) {
+    return MAX_PACE_SLIDER_SECONDS;
+  }
+
+  return Math.min(
+    MAX_PACE_SLIDER_SECONDS,
+    Math.max(MIN_PACE_SLIDER_SECONDS, Math.round(totalSeconds)),
+  );
+}
+
 export function paceFromSpeed(speedKmh: number): PaceParts {
   const safeSpeed = clampSpeed(speedKmh);
   const totalMinutes = 60 / safeSpeed;
@@ -41,6 +54,21 @@ export function paceFromSpeed(speedKmh: number): PaceParts {
   };
 }
 
+export function pacePartsFromTotalSeconds(totalSeconds: number): PaceParts {
+  const safeTotalSeconds = Math.max(0, Math.round(totalSeconds));
+
+  return {
+    minutes: Math.floor(safeTotalSeconds / 60),
+    seconds: safeTotalSeconds % 60,
+  };
+}
+
+export function paceSecondsFromSpeed(speedKmh: number): number {
+  const pace = paceFromSpeed(speedKmh);
+
+  return pace.minutes * 60 + pace.seconds;
+}
+
 export function speedFromPace(minutes: number, seconds: number): number | null {
   if (!Number.isFinite(minutes) || minutes < 0) {
     return null;
@@ -56,11 +84,41 @@ export function speedFromPace(minutes: number, seconds: number): number | null {
   return 60 / totalMinutes;
 }
 
+export function speedFromPaceSeconds(totalSeconds: number): number | null {
+  const pace = pacePartsFromTotalSeconds(totalSeconds);
+  return speedFromPace(pace.minutes, pace.seconds);
+}
+
 export function formatPace(minutes: number, seconds: number): string {
   const safeMinutes = Math.max(0, Math.floor(minutes));
   const safeSeconds = sanitizeSeconds(seconds);
 
   return `${safeMinutes}:${String(safeSeconds).padStart(2, "0")} /km`;
+}
+
+export function formatPaceSeconds(totalSeconds: number): string {
+  const pace = pacePartsFromTotalSeconds(totalSeconds);
+  return formatPace(pace.minutes, pace.seconds);
+}
+
+export function formatEstimatedDuration(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+    return "--";
+  }
+
+  const roundedMinutes = Math.round(totalSeconds / 60);
+  const hours = Math.floor(roundedMinutes / 60);
+  const minutes = roundedMinutes % 60;
+
+  if (hours < 1) {
+    return `${roundedMinutes}분`;
+  }
+
+  if (minutes === 0) {
+    return `${hours}시간`;
+  }
+
+  return `${hours}시간 ${minutes}분`;
 }
 
 export function formatSpeed(speed: number): string {
@@ -99,4 +157,4 @@ export function parseIntegerInput(value: string): number | null {
   return Math.floor(parsed);
 }
 
-export { MAX_SPEED, MIN_SPEED };
+export { MAX_PACE_SLIDER_SECONDS, MAX_SPEED, MIN_PACE_SLIDER_SECONDS, MIN_SPEED };
