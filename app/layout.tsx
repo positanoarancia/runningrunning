@@ -39,6 +39,9 @@ export const metadata: Metadata = {
     description: PAGE_DESCRIPTION,
     images: [OG_IMAGE_PATH],
   },
+  verification: {
+    google: "f8VLh3Llc8IXBYWkldrHvplHkYIt17No7Sjnuc9TexI",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },
