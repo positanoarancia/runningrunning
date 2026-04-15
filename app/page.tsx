@@ -367,6 +367,37 @@ export default function HomePage() {
         : "var(--primary-strong)",
   } as CSSProperties;
 
+  const faqItems = [
+    {
+      question: "11km/h는 몇 분 페이스인가요?",
+      answer:
+        "11km/h는 약 5분 27초/km 페이스입니다. 계산식은 60 ÷ 11로 약 5.45분, 즉 5:27/km입니다.",
+    },
+    {
+      question: "5:30/km는 몇 km/h인가요?",
+      answer:
+        "5:30/km는 약 10.9km/h입니다. 5분 30초는 5.5분이므로 60 ÷ 5.5 = 약 10.91km/h입니다.",
+    },
+    {
+      question: "10km를 50분에 뛰려면 몇 페이스인가요?",
+      answer:
+        "10km를 50분에 완주하려면 평균 5:00/km 페이스가 필요합니다. 50분을 10km로 나누면 1km당 5분입니다.",
+    },
+  ];
+
+  const faqStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-10 pt-6 theme-text">
       <header className="mb-5 px-1">
@@ -378,9 +409,9 @@ export default function HomePage() {
             <h1 className="mt-3 text-3xl font-black tracking-tight theme-text">
               러닝 페이스 계산기
             </h1>
-            <p className="theme-muted mt-2 text-sm leading-6">
+            <h2 className="theme-muted mt-2 text-sm leading-6 font-medium">
               러닝머신 속도 ↔ 페이스 변환
-            </p>
+            </h2>
           </div>
           <div className="mt-1 flex items-start justify-end gap-2.5">
             <button
@@ -639,6 +670,39 @@ export default function HomePage() {
       <div className="mt-4 min-h-6 px-1 text-sm text-rose-400 dark:text-rose-300">
         {error}
       </div>
+
+      <section className="glass mt-6 rounded-[24px] p-5">
+        <h2 className="text-xl font-bold theme-text">러닝 페이스란?</h2>
+        <p className="mt-2 text-sm leading-6 theme-muted">
+          러닝 페이스는 1km를 달리는 데 걸리는 시간을 뜻합니다. 보통 분:초/km 형식으로
+          표시합니다.
+        </p>
+      </section>
+
+      <section className="glass mt-3 rounded-[24px] p-5">
+        <h2 className="text-xl font-bold theme-text">러닝머신 속도와 페이스 변환</h2>
+        <p className="mt-2 text-sm leading-6 theme-muted">
+          러닝머신은 보통 km/h로 속도를 표시하지만, 러너는 페이스로 기록을 이해하는 경우가
+          많습니다. 이 계산기는 속도와 페이스를 서로 빠르게 바꿔줍니다.
+        </p>
+      </section>
+
+      <section className="glass mt-3 rounded-[24px] p-5">
+        <h2 className="text-xl font-bold theme-text">자주 묻는 질문</h2>
+        <div className="mt-3 space-y-3">
+          {faqItems.map((item) => (
+            <article key={item.question} className="rounded-xl border border-[var(--border)] p-3">
+              <h3 className="text-sm font-semibold theme-text">{item.question}</h3>
+              <p className="mt-1 text-sm leading-6 theme-muted">{item.answer}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
+      />
 
     </main>
   );
