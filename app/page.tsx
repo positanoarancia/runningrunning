@@ -12,8 +12,6 @@ import {
   formatSpeed,
   paceFromSpeed,
   paceSecondsFromSpeed,
-  parseDecimalInput,
-  parseIntegerInput,
   speedFromPace,
 } from "@/lib/pace";
 
@@ -103,16 +101,7 @@ export default function HomePage() {
   const [activeMode, setActiveMode] = useState<ActiveMode>("speed");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [sliderPosition, setSliderPosition] = useState<number>(DEFAULT_POSITION);
-  const [showPrecisionInput, setShowPrecisionInput] = useState<boolean>(false);
   const [introHighlight, setIntroHighlight] = useState<ActiveMode | null>(null);
-  const [speedInput, setSpeedInput] = useState<string>(DEFAULT_SPEED.toFixed(1));
-  const initialPace = paceFromSpeed(DEFAULT_SPEED);
-  const [paceMinutesInput, setPaceMinutesInput] = useState<string>(
-    String(initialPace.minutes),
-  );
-  const [paceSecondsInput, setPaceSecondsInput] = useState<string>(
-    String(initialPace.seconds).padStart(2, "0"),
-  );
   const [error, setError] = useState<string>("");
   const [shareNotice, setShareNotice] = useState<string>("");
   const lastSpeedHapticMark = useRef<number | null>(null);
@@ -201,12 +190,6 @@ export default function HomePage() {
   const estimatedHalf = formatEstimatedDuration(currentPaceSeconds * 21.1);
 
   useEffect(() => {
-    setSpeedInput(currentSpeed.toFixed(1));
-    setPaceMinutesInput(String(currentPace.minutes));
-    setPaceSecondsInput(String(currentPace.seconds).padStart(2, "0"));
-  }, [currentPace.minutes, currentPace.seconds, currentSpeed]);
-
-  useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme-mode");
     const initialTheme =
       savedTheme === "light" || savedTheme === "dark"
@@ -287,61 +270,31 @@ export default function HomePage() {
     updateFromSliderPosition(parsed, activeMode);
   };
 
-  const handleSpeedInputChange = (value: string) => {
-    setSpeedInput(value);
-    setActiveMode("speed");
-
-    const parsed = parseDecimalInput(value);
-    if (parsed === null) {
-      setError(value.trim() === "" ? "" : "속도는 0보다 큰 숫자로 입력하세요.");
-      return;
-    }
-
-    if (parsed < MIN_SPEED || parsed > MAX_SPEED) {
-      setError(`속도는 ${MIN_SPEED.toFixed(1)}~${MAX_SPEED.toFixed(1)} km/h 범위로 입력하세요.`);
-      return;
-    }
-
-    updateFromSliderPosition(positionFromSpeed(parsed), "speed");
-  };
-
-  const handlePaceInputChange = (nextMinutesRaw: string, nextSecondsRaw: string) => {
-    setPaceMinutesInput(nextMinutesRaw);
-    setPaceSecondsInput(nextSecondsRaw);
-    setActiveMode("pace");
-
-    const parsedMinutes = parseIntegerInput(nextMinutesRaw);
-    const parsedSeconds = parseIntegerInput(nextSecondsRaw);
-
-    if (parsedMinutes === null || parsedSeconds === null) {
-      setError(
-        nextMinutesRaw.trim() === "" && nextSecondsRaw.trim() === ""
-          ? ""
-          : "페이스는 분과 초를 숫자로 입력하세요.",
+  const nudgeSlider = (direction: -1 | 1) => {
+    if (activeMode === "speed") {
+      const nextSpeed = Math.min(
+        MAX_SPEED,
+        Math.max(MIN_SPEED, Math.round((currentSpeed + direction * 0.1) * 10) / 10),
       );
+      maybeTriggerSpeedHaptic(nextSpeed);
+      updateFromSliderPosition(positionFromSpeed(nextSpeed), "speed");
+      triggerHaptic();
       return;
     }
 
-    if (parsedSeconds > 59) {
-      setError("초는 0부터 59까지만 입력할 수 있습니다.");
-      return;
-    }
+    const nextPaceSeconds = clampPaceSliderSeconds(currentPaceSeconds + direction * 5);
+    const nextSpeed = speedFromPace(
+      Math.floor(nextPaceSeconds / 60),
+      nextPaceSeconds % 60,
+    );
 
-    const totalSeconds = parsedMinutes * 60 + parsedSeconds;
-    const clampedSeconds = clampPaceSliderSeconds(totalSeconds);
-
-    if (totalSeconds !== clampedSeconds) {
-      setError("페이스는 3:20/km부터 10:00/km 사이로 입력하세요.");
-      return;
-    }
-
-    const nextSpeed = speedFromPace(parsedMinutes, parsedSeconds);
     if (nextSpeed === null) {
-      setError("유효한 페이스를 입력하세요.");
       return;
     }
 
+    maybeTriggerPaceHaptic(nextPaceSeconds);
     updateFromSliderPosition(positionFromSpeed(nextSpeed), "pace");
+    triggerHaptic();
   };
 
   const sliderLabel = activeMode === "speed" ? "속도 슬라이더" : "페이스 슬라이더";
@@ -529,9 +482,27 @@ export default function HomePage() {
       <section className="glass mt-4 rounded-[24px] p-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold theme-text">{sliderLabel}</p>
-          <span className="theme-soft theme-accent-blue rounded-full border px-3 py-1 text-sm font-semibold">
-            {sliderValueLabel}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="theme-soft theme-accent-blue rounded-full border px-3 py-1 text-sm font-semibold">
+              {sliderValueLabel}
+            </span>
+            <button
+              type="button"
+              aria-label={activeMode === "speed" ? "속도 0.1 감소" : "페이스 5초 감소"}
+              onClick={() => nudgeSlider(-1)}
+              className="theme-muted flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] opacity-70 hover:opacity-100 hover:text-[var(--text)] active:scale-95"
+            >
+              -
+            </button>
+            <button
+              type="button"
+              aria-label={activeMode === "speed" ? "속도 0.1 증가" : "페이스 5초 증가"}
+              onClick={() => nudgeSlider(1)}
+              className="theme-muted flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] opacity-70 hover:opacity-100 hover:text-[var(--text)] active:scale-95"
+            >
+              +
+            </button>
+          </div>
         </div>
 
         <div className="mt-3">
@@ -584,87 +555,6 @@ export default function HomePage() {
             );
           })}
         </div>
-      </section>
-
-      <section className="glass mt-4 rounded-[22px] px-5 pb-[18px] pt-5">
-        <button
-          type="button"
-          onClick={() => setShowPrecisionInput((current) => !current)}
-          className="flex w-full items-center justify-between px-2 py-0.5 text-left"
-        >
-          <span className="flex items-center gap-1.5 text-sm font-medium theme-muted">
-            <span>정밀 입력</span>
-            <span
-              className={`inline-block text-[11px] transition-transform duration-200 ${
-                showPrecisionInput ? "rotate-0" : "-rotate-90"
-              }`}
-              aria-hidden="true"
-            >
-              ▼
-            </span>
-          </span>
-          <span className="theme-muted-soft text-[11px]">{activeMode === "speed" ? "속도" : "페이스"}</span>
-        </button>
-
-        {showPrecisionInput ? (
-          <div className="mt-4">
-            {activeMode === "speed" ? (
-              <div>
-                <p className="mb-3 px-1 text-sm font-medium theme-muted">속도</p>
-                <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--field)] px-3 py-1.5 shadow-none">
-                  <input
-                    id="speed-input"
-                    inputMode="decimal"
-                    type="number"
-                    step="0.1"
-                    min={MIN_SPEED}
-                    max={MAX_SPEED}
-                    value={speedInput}
-                    onChange={(event) => handleSpeedInputChange(event.target.value)}
-                    className="w-full bg-transparent text-lg font-semibold theme-text outline-none placeholder:text-[var(--muted-soft)]"
-                    placeholder="9.0"
-                  />
-                  <span className="theme-muted ml-2 text-sm font-medium">km/h</span>
-                </div>
-                <div className="mb-4" />
-              </div>
-            ) : (
-              <div>
-                <p className="mb-3 px-1 text-sm font-medium theme-muted">페이스</p>
-                <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2.5">
-                  <input
-                    inputMode="numeric"
-                    type="number"
-                    min="4"
-                    value={paceMinutesInput}
-                    onChange={(event) =>
-                      handlePaceInputChange(event.target.value, paceSecondsInput)
-                    }
-                    className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--field)] px-3 py-1.5 text-center text-lg font-semibold theme-text outline-none shadow-none placeholder:text-[var(--muted-soft)]"
-                    placeholder="6"
-                    aria-label="페이스 분"
-                  />
-                  <span className="theme-muted text-lg font-semibold">:</span>
-                  <input
-                    inputMode="numeric"
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={paceSecondsInput}
-                    onChange={(event) =>
-                      handlePaceInputChange(paceMinutesInput, event.target.value)
-                    }
-                    className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--field)] px-3 py-1.5 text-center text-lg font-semibold theme-text outline-none shadow-none placeholder:text-[var(--muted-soft)]"
-                    placeholder="40"
-                    aria-label="페이스 초"
-                  />
-                  <span className="theme-muted text-sm font-medium">/km</span>
-                </div>
-                <div className="mb-4" />
-              </div>
-            )}
-          </div>
-        ) : null}
       </section>
 
       <div className="mt-4 min-h-6 px-1 text-sm text-rose-400 dark:text-rose-300">
