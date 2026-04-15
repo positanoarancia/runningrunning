@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Script from "next/script";
 import "./globals.css";
 
-const SITE_URL = "https://runningrunning.kr";
+const SITE_URL = "https://runningrunning.vercel.app";
 const SITE_NAME = "runningrunning";
 const PAGE_TITLE = "러닝 페이스 계산기 | 러닝머신 속도 ↔ 페이스 변환";
 const PAGE_DESCRIPTION =
