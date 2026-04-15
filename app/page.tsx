@@ -282,7 +282,7 @@ export default function HomePage() {
       return;
     }
 
-    const nextPaceSeconds = clampPaceSliderSeconds(currentPaceSeconds + direction * 5);
+    const nextPaceSeconds = clampPaceSliderSeconds(currentPaceSeconds - direction * 5);
     const nextSpeed = speedFromPace(
       Math.floor(nextPaceSeconds / 60),
       nextPaceSeconds % 60,
