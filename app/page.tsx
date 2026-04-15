@@ -78,6 +78,27 @@ function MoonIcon() {
   );
 }
 
+function ShareIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+    >
+      <circle cx="18" cy="5" r="2.2" />
+      <circle cx="6" cy="12" r="2.2" />
+      <circle cx="18" cy="19" r="2.2" />
+      <path d="M8 11 16 6.2" />
+      <path d="m8 13 8 4.8" />
+    </svg>
+  );
+}
+
 export default function HomePage() {
   const [activeMode, setActiveMode] = useState<ActiveMode>("speed");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
@@ -93,8 +114,10 @@ export default function HomePage() {
     String(initialPace.seconds).padStart(2, "0"),
   );
   const [error, setError] = useState<string>("");
+  const [shareNotice, setShareNotice] = useState<string>("");
   const lastSpeedHapticMark = useRef<number | null>(null);
   const lastPaceHapticMark = useRef<number | null>(null);
+  const shareNoticeTimeout = useRef<number | null>(null);
 
   const applyTheme = (nextTheme: ThemeMode) => {
     setThemeMode(nextTheme);
@@ -107,6 +130,60 @@ export default function HomePage() {
     const currentTheme =
       document.documentElement.dataset.theme === "dark" ? "dark" : "light";
     applyTheme(currentTheme === "dark" ? "light" : "dark");
+  };
+
+  const showShareNotice = () => {
+    setShareNotice("링크가 복사되었습니다");
+
+    if (shareNoticeTimeout.current !== null) {
+      window.clearTimeout(shareNoticeTimeout.current);
+    }
+
+    shareNoticeTimeout.current = window.setTimeout(() => {
+      setShareNotice("");
+    }, 2200);
+  };
+
+  const copyCurrentUrl = async (url: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = url;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      showShareNotice();
+    } catch {
+      setShareNotice("링크 복사에 실패했습니다");
+    }
+  };
+
+  const handleShare = async () => {
+    const sharePayload = {
+      title: "러닝 페이스 계산기",
+      text: "러닝머신 속도와 페이스를 빠르게 변환해보세요.",
+      url: window.location.href,
+    };
+
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share(sharePayload);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
+    await copyCurrentUrl(sharePayload.url);
   };
 
   const speedFromPosition = (position: number) =>
@@ -139,6 +216,14 @@ export default function HomePage() {
           : "light";
 
     applyTheme(initialTheme);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (shareNoticeTimeout.current !== null) {
+        window.clearTimeout(shareNoticeTimeout.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -297,15 +382,30 @@ export default function HomePage() {
               러닝머신 속도 ↔ 페이스 변환
             </p>
           </div>
-          <button
-            type="button"
-            aria-label={themeMode === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
-            onClick={toggleTheme}
-            className="theme-muted mt-1 px-1 py-1 opacity-60 hover:opacity-85 hover:text-[var(--text)] active:scale-95"
-          >
-            {themeMode === "dark" ? <SunIcon /> : <MoonIcon />}
-          </button>
+          <div className="mt-1 flex items-start justify-end gap-2.5">
+            <button
+              type="button"
+              aria-label="공유하기"
+              onClick={handleShare}
+              className="theme-muted rounded-md p-1 opacity-70 transition hover:opacity-95 hover:text-[var(--text)] active:scale-95 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+            >
+              <ShareIcon />
+            </button>
+            <button
+              type="button"
+              aria-label={themeMode === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+              onClick={toggleTheme}
+              className="theme-muted rounded-md p-1 opacity-70 transition hover:opacity-95 hover:text-[var(--text)] active:scale-95 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+            >
+              {themeMode === "dark" ? <SunIcon /> : <MoonIcon />}
+            </button>
+          </div>
         </div>
+        {shareNotice ? (
+          <p className="theme-muted mt-2 px-1 text-right text-xs" role="status" aria-live="polite">
+            {shareNotice}
+          </p>
+        ) : null}
       </header>
 
       <section className="glass relative overflow-hidden rounded-[26px] p-5">
