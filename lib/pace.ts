@@ -8,6 +8,23 @@ export type PaceParts = {
   seconds: number;
 };
 
+export type ConversionSnapshot = {
+  speed: number;
+  pace: PaceParts;
+  paceSeconds: number;
+  paceValue: string;
+  paceLabel: string;
+  estimated10k: string;
+  estimatedHalf: string;
+};
+
+const conversionSnapshotCache = new Map<string, ConversionSnapshot>();
+const paceMarkLabelCache = new Map<number, string>();
+
+function toSpeedCacheKey(speed: number): string {
+  return clampSpeed(speed).toFixed(4);
+}
+
 export function clampSpeed(speed: number): number {
   if (!Number.isFinite(speed)) {
     return MIN_SPEED;
@@ -69,6 +86,31 @@ export function paceSecondsFromSpeed(speedKmh: number): number {
   return pace.minutes * 60 + pace.seconds;
 }
 
+export function getConversionSnapshot(speedKmh: number): ConversionSnapshot {
+  const safeSpeed = clampSpeed(speedKmh);
+  const cacheKey = toSpeedCacheKey(safeSpeed);
+  const cached = conversionSnapshotCache.get(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  const pace = paceFromSpeed(safeSpeed);
+  const paceSeconds = pace.minutes * 60 + pace.seconds;
+  const snapshot = {
+    speed: safeSpeed,
+    pace,
+    paceSeconds,
+    paceValue: `${pace.minutes}:${String(pace.seconds).padStart(2, "0")}`,
+    paceLabel: formatPace(pace.minutes, pace.seconds),
+    estimated10k: formatEstimatedDuration(paceSeconds * 10),
+    estimatedHalf: formatEstimatedDuration(paceSeconds * 21.1),
+  };
+
+  conversionSnapshotCache.set(cacheKey, snapshot);
+  return snapshot;
+}
+
 export function speedFromPace(minutes: number, seconds: number): number | null {
   if (!Number.isFinite(minutes) || minutes < 0) {
     return null;
@@ -99,6 +141,19 @@ export function formatPace(minutes: number, seconds: number): string {
 export function formatPaceSeconds(totalSeconds: number): string {
   const pace = pacePartsFromTotalSeconds(totalSeconds);
   return formatPace(pace.minutes, pace.seconds);
+}
+
+export function getPaceMarkLabel(totalSeconds: number): string {
+  const safeTotalSeconds = Math.max(0, Math.round(totalSeconds));
+  const cached = paceMarkLabelCache.get(safeTotalSeconds);
+
+  if (cached) {
+    return cached;
+  }
+
+  const label = formatPaceSeconds(safeTotalSeconds).replace(" /km", "");
+  paceMarkLabelCache.set(safeTotalSeconds, label);
+  return label;
 }
 
 export function formatEstimatedDuration(totalSeconds: number): string {
@@ -155,6 +210,22 @@ export function parseIntegerInput(value: string): number | null {
   }
 
   return Math.floor(parsed);
+}
+
+export function warmPaceCache({
+  speeds = [],
+  paceSeconds = [],
+}: {
+  speeds?: number[];
+  paceSeconds?: number[];
+} = {}): void {
+  speeds.forEach((speed) => {
+    getConversionSnapshot(speed);
+  });
+
+  paceSeconds.forEach((seconds) => {
+    getPaceMarkLabel(seconds);
+  });
 }
 
 export { MAX_PACE_SLIDER_SECONDS, MAX_SPEED, MIN_PACE_SLIDER_SECONDS, MIN_SPEED };

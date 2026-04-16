@@ -6,13 +6,12 @@ import {
   MAX_SPEED,
   MIN_SPEED,
   clampPaceSliderSeconds,
-  formatEstimatedDuration,
-  formatPace,
-  formatPaceSeconds,
   formatSpeed,
+  getConversionSnapshot,
+  getPaceMarkLabel,
   paceFromSpeed,
-  paceSecondsFromSpeed,
   speedFromPace,
+  warmPaceCache,
 } from "@/lib/pace";
 
 const SPEED_MARKS = [6, 8, 10, 12, 14, 16, 18];
@@ -22,9 +21,19 @@ const DEFAULT_POSITION = Math.round(((DEFAULT_SPEED - MIN_SPEED) / (MAX_SPEED - 
 const SLIDER_MAX = 1000;
 const SPEED_HAPTIC_STEP = 0.5;
 const PACE_HAPTIC_STEP = 15;
+const PREFETCH_SPEEDS = [DEFAULT_SPEED, 10, 12];
+const PREFETCH_PACE_MARKS = [300, 360, 450];
 
 type ActiveMode = "speed" | "pace";
 type ThemeMode = "light" | "dark";
+type IdleCallbackHandle = number;
+type IdleCallbackHost = Window & {
+  requestIdleCallback?: (
+    callback: IdleRequestCallback,
+    options?: IdleRequestOptions,
+  ) => IdleCallbackHandle;
+  cancelIdleCallback?: (handle: IdleCallbackHandle) => void;
+};
 
 function triggerHaptic() {
   if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") {
@@ -182,12 +191,13 @@ export default function HomePage() {
     Math.round(((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * SLIDER_MAX);
 
   const currentSpeed = speedFromPosition(sliderPosition);
-  const currentPace = paceFromSpeed(currentSpeed);
-  const currentPaceSeconds = paceSecondsFromSpeed(currentSpeed);
-  const currentPaceValue = `${currentPace.minutes}:${String(currentPace.seconds).padStart(2, "0")}`;
-  const currentPaceLabel = formatPace(currentPace.minutes, currentPace.seconds);
-  const estimated10k = formatEstimatedDuration(currentPaceSeconds * 10);
-  const estimatedHalf = formatEstimatedDuration(currentPaceSeconds * 21.1);
+  const currentSnapshot = getConversionSnapshot(currentSpeed);
+  const currentPace = currentSnapshot.pace;
+  const currentPaceSeconds = currentSnapshot.paceSeconds;
+  const currentPaceValue = currentSnapshot.paceValue;
+  const currentPaceLabel = currentSnapshot.paceLabel;
+  const estimated10k = currentSnapshot.estimated10k;
+  const estimatedHalf = currentSnapshot.estimatedHalf;
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme-mode");
@@ -218,6 +228,34 @@ export default function HomePage() {
       window.clearTimeout(toPace);
       window.clearTimeout(toSpeed);
       window.clearTimeout(clear);
+    };
+  }, []);
+
+  useEffect(() => {
+    const warm = () => {
+      warmPaceCache({
+        speeds: PREFETCH_SPEEDS,
+        paceSeconds: PREFETCH_PACE_MARKS,
+      });
+    };
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const idleHost = window as IdleCallbackHost;
+
+    if (typeof idleHost.requestIdleCallback === "function") {
+      const idleId = idleHost.requestIdleCallback(() => warm(), { timeout: 1200 });
+
+      return () => {
+        idleHost.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timeoutId = window.setTimeout(warm, 180);
+    return () => {
+      window.clearTimeout(timeoutId);
     };
   }, []);
 
@@ -550,7 +588,7 @@ export default function HomePage() {
                       : "theme-muted hover:bg-[color:color-mix(in_srgb,var(--primary)_8%,transparent)]"
                 }`}
               >
-                {activeMode === "speed" ? mark : formatPaceSeconds(mark).replace(" /km", "")}
+                {activeMode === "speed" ? mark : getPaceMarkLabel(mark)}
               </button>
             );
           })}
