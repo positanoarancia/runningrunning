@@ -27,22 +27,18 @@ const QUICK_PRESETS = [
   {
     label: "가볍게 조깅",
     speed: 8,
-    description: "처음 뛰거나 회복 러닝할 때 편하게 맞추기 좋은 흐름",
+  },
+  {
+    label: "5km 30분",
+    speed: 10,
   },
   {
     label: "10km 50분",
     speed: 12,
-    description: "10km 50분 완주를 노릴 때 가장 먼저 눌러보기 좋은 기준",
   },
   {
     label: "하프 2시간",
     speed: 10.6,
-    description: "하프 2시간 페이스 감각을 빠르게 확인할 때 자주 쓰는 목표",
-  },
-  {
-    label: "서브 4",
-    speed: 10.6,
-    description: "마라톤 4시간 컷 준비 때 기준으로 많이 맞춰보는 속도",
   },
 ] as const;
 
@@ -128,26 +124,6 @@ function ShareIcon() {
   );
 }
 
-function getTimeAwareMessage(hour: number) {
-  if (hour < 6) {
-    return "이른 시간엔 몸을 깨우는 가벼운 조깅부터 시작하는 편이 잘 맞아요.";
-  }
-
-  if (hour < 11) {
-    return "오전 러닝은 리듬을 만들기 좋아서 목표 페이스를 눌러 감각을 맞추기 좋아요.";
-  }
-
-  if (hour < 17) {
-    return "낮에는 무리한 기록보다 유지 가능한 페이스를 먼저 잡아보는 편이 안정적이에요.";
-  }
-
-  if (hour < 22) {
-    return "저녁 러닝엔 많이 찾는 목표를 눌러 바로 시작하면 진입 장벽이 확 낮아져요.";
-  }
-
-  return "늦은 시간엔 기록보다 회복감 있는 속도로 마무리하는 편이 더 편안해요.";
-}
-
 export default function HomePage() {
   const [activeMode, setActiveMode] = useState<ActiveMode>("speed");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
@@ -155,9 +131,6 @@ export default function HomePage() {
   const [introHighlight, setIntroHighlight] = useState<ActiveMode | null>(null);
   const [error, setError] = useState<string>("");
   const [shareNotice, setShareNotice] = useState<string>("");
-  const [timeAwareMessage, setTimeAwareMessage] = useState<string>(
-    "지금 많이 찾는 목표를 눌러 바로 페이스 감각을 잡아보세요.",
-  );
   const lastSpeedHapticMark = useRef<number | null>(null);
   const lastPaceHapticMark = useRef<number | null>(null);
   const shareNoticeTimeout = useRef<number | null>(null);
@@ -258,17 +231,6 @@ export default function HomePage() {
           : "light";
 
     applyTheme(initialTheme);
-  }, []);
-
-  useEffect(() => {
-    const syncTimeAwareMessage = () => {
-      setTimeAwareMessage(getTimeAwareMessage(new Date().getHours()));
-    };
-
-    syncTimeAwareMessage();
-
-    const intervalId = window.setInterval(syncTimeAwareMessage, 60_000);
-    return () => window.clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -659,7 +621,6 @@ export default function HomePage() {
         <p className="theme-accent-blue text-[11px] font-semibold uppercase tracking-[0.18em]">
           많이 찾는 목표
         </p>
-        <p className="mt-2 text-sm leading-6 theme-muted">{timeAwareMessage}</p>
 
         <div className="mt-3 flex flex-wrap gap-2">
           {QUICK_PRESETS.map((preset) => {
