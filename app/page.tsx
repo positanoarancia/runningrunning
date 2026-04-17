@@ -531,7 +531,7 @@ export default function HomePage() {
       </section>
 
       <section className="glass mt-3 rounded-[24px] p-5">
-        <p className="theme-muted text-[11px]">예상 완주 시간</p>
+        <p className="theme-muted text-[11px]">이 페이스면</p>
         <p className="mt-1 text-sm font-medium theme-text">
           10km 약 <span className="theme-accent-blue font-bold">{estimated10k}</span>
           <span className="mx-2 theme-muted">/</span>
