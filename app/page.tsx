@@ -166,7 +166,6 @@ export default function HomePage() {
   const handleShare = async () => {
     const sharePayload = {
       title: "러닝 페이스 계산기",
-      text: "러닝머신 속도와 페이스를 빠르게 변환해보세요.",
       url: window.location.href,
     };
 
