@@ -622,7 +622,7 @@ export default function HomePage() {
           많이 찾는 목표
         </p>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           {QUICK_PRESETS.map((preset) => {
             const isActive = Math.abs(currentSpeed - preset.speed) < 0.16;
 
@@ -631,7 +631,7 @@ export default function HomePage() {
                 key={preset.label}
                 type="button"
                 onClick={() => applyPreset(preset.speed)}
-                className={`rounded-full border px-3 py-2 text-sm font-semibold transition active:scale-95 ${
+                className={`min-h-10 rounded-full border px-3 py-2 text-center text-sm font-semibold transition active:scale-95 ${
                   isActive
                     ? "theme-accent-green-soft theme-accent-green"
                     : "theme-soft theme-muted hover:bg-[color:color-mix(in_srgb,var(--primary)_7%,transparent)]"
